@@ -1,8 +1,8 @@
 // TODO: improve
 const secretTag = Math.random().toString();
 
-module.exports.createRuntype = options => (text, ...io) => {
-  const [output, ...input] = io;
+const createRuntype = options => (text, ...io) => {
+  const [output, ...input] = io.reverse();
   input.reverse();
 
   const [description, ...ioDescription] = text
@@ -39,3 +39,5 @@ module.exports.createRuntype = options => (text, ...io) => {
     return result;
   };
 };
+
+module.exports.createRuntype = createRuntype;
