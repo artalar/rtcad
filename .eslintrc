@@ -1,0 +1,15 @@
+{
+  "parser": "babel-eslint",
+
+  "plugins": ["jest", "prettier"],
+
+  "extends": ["airbnb-base", "prettier"],
+
+  "rules": {
+    "no-plusplus": "off",
+  },
+
+  "env": {
+    "jest/globals": true
+  }
+}
