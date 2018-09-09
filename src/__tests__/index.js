@@ -17,30 +17,30 @@ describe('runtype', () => {
   });
 
   test('validate arguments', () => {
-    let isError = false;
+    let errorMessage = '';
 
     try {
       sqrt('string');
     } catch (error) {
-      isError = true;
+      errorMessage = error.message;
     }
 
-    expect(isError).toBe(true);
+    expect(errorMessage).toBe('Property #1 "number" is not valid');
   });
 
   test('validate result', () => {
-    let isError = false;
+    let errorMessage = '';
     const MathSqrt = Math.sqrt;
     Math.sqrt = () => 'string';
 
     try {
       sqrt(25);
     } catch (error) {
-      isError = true;
+      errorMessage = error.message;
     }
 
     Math.sqrt = MathSqrt;
 
-    expect(isError).toBe(true);
+    expect(errorMessage).toBe('Result "square root" is not valid');
   });
 });
