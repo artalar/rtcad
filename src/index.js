@@ -1,3 +1,5 @@
+const { Types } = require('./types');
+
 // TODO: improve
 const secretTag = Math.random().toString();
 
@@ -48,55 +50,78 @@ const parseDescription = (descriptions, types) => {
   };
 };
 
-const checkType = (relative, target) => Object(relative) instanceof target;
+const checkType = (relative, target) => Types.get(target)(relative);
 
-const createRuntype = (options = { log: false }) => (descriptions, ...types) => {
-  const { log } = options;
-  const {
-    functionDescription,
-    argumentTypes,
-    returnType,
-    argumentNames,
-    resultName,
-  } = parseDescription(descriptions, types);
+const createRuntype = (options = {}) => {
+  const { log = false, contract = false } = options;
+  const runtype = (descriptions, ...types) => {
+    const {
+      functionDescription,
+      argumentTypes,
+      returnType,
+      argumentNames,
+      resultName,
+    } = parseDescription(descriptions, types);
 
-  return f => (...params) => {
-    if (log === true) {
-      console.groupCollapsed(`rtcad: ${functionDescription}`);
-    }
+    return f => (...params) => {
+      if (log === true) {
+        console.groupCollapsed(`rtcad: ${functionDescription}`);
+      }
 
-    for (let i = 0; i < argumentTypes.length; i++) {
-      if (checkType(params[i], argumentTypes[i]) !== true) {
-        const error = new Error(`Property #${i + 1}${argumentNames[i]} is not valid`);
+      for (let i = 0; i < argumentTypes.length; i++) {
+        if (checkType(params[i], argumentTypes[i]) !== true) {
+          const error = new Error(`Property #${i + 1}${argumentNames[i]} is not valid`);
+
+          if (log === true) {
+            console.error(error);
+            console.groupEnd();
+          }
+
+          if (contract === true) throw error;
+        }
+      }
+
+      const result = f(...params);
+
+      if (checkType(result, returnType) !== true) {
+        const error = new Error(`Result${resultName} is not valid`);
 
         if (log === true) {
           console.error(error);
           console.groupEnd();
         }
 
-        throw error;
+        if (contract === true) throw error;
       }
-    }
-
-    const result = f(...params);
-
-    if (checkType(result, returnType) !== true) {
-      const error = new Error(`Result${resultName} is not valid`);
 
       if (log === true) {
-        console.error(error);
         console.groupEnd();
       }
 
-      throw error;
-    }
-
-    if (log === true) {
-      console.groupEnd();
-    }
-
-    return result;
+      return result;
+    };
   };
+
+  // add context
+  runtype.new = (tester, description = '@@rtcad/type') => {
+    const testerType = typeof tester;
+    if (testerType !== 'function') {
+      if (log === true)
+        console.error(
+          new Error(`Invalid tester callback: expect a function, but got "${testerType}"`),
+        );
+      // eslint-disable-next-line no-param-reassign
+      tester = () => {
+        if (log === true) console.warn(new Error(`Invalid type was call: "${testerType}"`));
+        return false;
+      };
+    }
+    const typeId = Symbol(description);
+    Types.set(typeId, tester);
+    return typeId;
+  };
+
+  return runtype;
 };
 
 module.exports.createRuntype = createRuntype;
