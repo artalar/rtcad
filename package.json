@@ -54,5 +54,9 @@
   "jest": {
     "verbose": true,
     "testURL": "http://localhost/"
+  },
+  "dependencies": {
+    "remark": "^9.0.0",
+    "remark-preset-lint-markdown-style-guide": "^2.1.2"
   }
 }
