@@ -1,76 +1,66 @@
 const { Types } = require('./types');
+const { parse: parseDocumentation } = require('./parser');
 
-// TODO: improve
-const secretTag = Math.random().toString();
+function butifyFieldDescription(description) {
+  if (description === '') return description;
+  return ` "${description}"`;
+}
 
-const parseDescription = (descriptions, types) => {
-  const [functionDescription, ...typeDescriptions] = descriptions
-    .join(secretTag)
-    // TODO: escape `@` in user description
-    .split('@')
-    .map(str => str.trim());
+function parse(documentation, types) {
+  let argsType = [];
+  let resultType;
 
-  let argumentDescriptions;
-  let returnDescription;
-  let argumentTypes;
-  let returnType;
+  const {
+    definition,
+    description,
+    argsDescription,
+    resultDescription,
+  } = parseDocumentation(documentation.join(''));
 
-  if (/@return/.test(descriptions) === true) {
-    argumentDescriptions = typeDescriptions.slice(0, typeDescriptions.length - 1);
-    returnDescription = typeDescriptions[typeDescriptions.length - 1];
-    argumentTypes = types.slice(0, types.length - 1);
-    returnType = types[types.length - 1];
-  } else {
-    argumentDescriptions = typeDescriptions.slice();
-    returnDescription = `return ${secretTag} void`;
-    argumentTypes = types.slice();
-    returnType = undefined;
+  if (resultDescription === 'void') {
+    types = types.concat(undefined);
   }
 
-  const argumentNames = argumentDescriptions.map(argumentDescriptionRaw => {
-    const argumentDescription = argumentDescriptionRaw
-      .slice(argumentDescriptionRaw.indexOf(secretTag) + secretTag.length)
-      .trim();
-    return argumentDescription ? ` "${argumentDescription}"` : '';
-  });
-
-  let resultName = returnDescription
-    .slice(returnDescription.indexOf(secretTag) + secretTag.length)
-    .trim();
-  resultName = resultName ? ` "${resultName}"` : '';
+  argsType = types.slice(0, types.length - 1);
+  resultType = types[types.length - 1];
 
   return {
-    functionDescription,
-    argumentDescriptions,
-    returnDescription,
-    argumentTypes,
-    returnType,
-    argumentNames,
-    resultName,
+    definition,
+    description,
+    argsDescription: argsDescription.map(butifyFieldDescription),
+    resultDescription: butifyFieldDescription(resultDescription),
+    argsType,
+    resultType,
   };
-};
+}
 
-const checkType = (relative, target) => Types.get(target)(relative);
+function checkType(relative, target) {
+  return Types.get(target)(relative);
+}
 
-const createRuntype = (options = {}) => {
+function createRuntype(options = {}) {
   const { log = false, contract = false } = options;
   const runtype = (descriptions, ...types) => {
+    const parsedParams = parse(descriptions, types);
     const {
-      functionDescription,
-      argumentTypes,
-      returnType,
-      argumentNames,
-      resultName,
-    } = parseDescription(descriptions, types);
+      definition,
+      description: functionDescription,
+      argsType,
+      resultType,
+      argsDescription,
+      resultDescription,
+    } = parsedParams;
 
     return f => (...params) => {
       if (log === true) {
-        console.groupCollapsed(`rtcad: ${functionDescription}`);
+        console.groupCollapsed(`rtcad: ${definition}`);
       }
 
-      for (let i = 0; i < argumentTypes.length; i++) {
-        if (checkType(params[i], argumentTypes[i]) !== true) {
-          const error = new Error(`Property #${i + 1}${argumentNames[i]} is not valid`);
+      for (let i = 0; i < argsType.length; i++) {
+        if (checkType(params[i], argsType[i]) !== true) {
+          const error = new Error(
+            `Property #${i + 1}${argsDescription[i]} is not valid`,
+          );
 
           if (log === true) {
             console.error(error);
@@ -83,8 +73,9 @@ const createRuntype = (options = {}) => {
 
       const result = f(...params);
 
-      if (checkType(result, returnType) !== true) {
-        const error = new Error(`Result${resultName} is not valid`);
+      if (checkType(result, resultType) !== true) {
+        console.log(parsedParams);
+        const error = new Error(`Result${resultDescription} is not valid`);
 
         if (log === true) {
           console.error(error);
@@ -108,11 +99,14 @@ const createRuntype = (options = {}) => {
     if (testerType !== 'function') {
       if (log === true)
         console.error(
-          new Error(`Invalid tester callback: expect a function, but got "${testerType}"`),
+          new Error(
+            `Invalid tester callback: expect a function, but got "${testerType}"`,
+          ),
         );
       // eslint-disable-next-line no-param-reassign
       tester = () => {
-        if (log === true) console.warn(new Error(`Invalid type was call: "${testerType}"`));
+        if (log === true)
+          console.warn(new Error(`Invalid type was call: "${testerType}"`));
         return false;
       };
     }
@@ -122,6 +116,6 @@ const createRuntype = (options = {}) => {
   };
 
   return runtype;
-};
+}
 
 module.exports.createRuntype = createRuntype;

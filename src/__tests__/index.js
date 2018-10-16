@@ -5,9 +5,9 @@ describe('rtcad', () => {
     const t = createRuntype({ log: false, contract: true });
 
     const sqrt = t`
-    The function returns the square root of a number
-    @arg  ${Number} number
-    @return ${Number} square root
+    # The function returns the square root of a number
+    - ${Number} number
+    - ${Number} square root
   `(number => {
       const result = Math.sqrt(number);
       return result;
@@ -52,7 +52,8 @@ describe('rtcad', () => {
     let isMapTypeExist = true;
     try {
       t`
-        @arg ${Map}
+        - ${Map}
+        - void
       `(() => {})(new Map());
     } catch (error) {
       expect(error.message).toBe('Types.get(...) is not a function');
@@ -60,16 +61,19 @@ describe('rtcad', () => {
     }
     expect(isMapTypeExist).toBe(false);
 
-    let typeTesterWasCall = false;
+    let testedTypeWasCall = false;
     const MapType = t.new(type => {
-      typeTesterWasCall = true;
+      testedTypeWasCall = true;
+      // ????????????????????????????????????
+      console.log('TEST', type instanceof Map, type);
       return type instanceof Map;
     });
 
     // isn't throw
     t`
-        @arg ${MapType}
-      `(() => {})(new Map());
-    expect(typeTesterWasCall).toBe(true);
+      - ${MapType}
+      - void
+    `(() => {})(new Map());
+    expect(testedTypeWasCall).toBe(true);
   });
 });

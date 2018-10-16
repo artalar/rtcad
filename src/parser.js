@@ -30,7 +30,8 @@ function parse(ast) {
         break;
       case 'paragraph':
       case 'blockquote':
-        description = (description ? `${description}\n` : '') + stringify(child);
+        description =
+          (description ? `${description}\n` : '') + stringify(child);
         break;
       case 'list': {
         const listItems = child.children;
@@ -44,7 +45,9 @@ function parse(ast) {
           .slice(0, listItems.length - 1)
           .map(listItem => listItem.children.map(stringify).join('\n'));
 
-        resultDescription = listItems[listItems.length - 1].children.map(stringify).join('');
+        resultDescription = listItems[listItems.length - 1].children
+          .map(stringify)
+          .join('');
         break;
       }
     }

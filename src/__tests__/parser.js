@@ -80,6 +80,15 @@ describe('parser', () => {
         resultDescription: '$$secret_key0$$ output!',
       });
     });
+    test('return void', () => {
+      const result = parse(`
+        # Function **definition**
+        - $$secret_key1$$ input!
+        - void
+      `);
+
+      expect(result.resultDescription).toBe('void');
+    });
     test('2 arguments', () => {
       const result = parse(`
         # Function **definition**

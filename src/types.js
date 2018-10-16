@@ -43,6 +43,7 @@
 
 module.exports.Types = new Map([
   [undefined, type => type === undefined],
+  ['void', type => type === undefined],
   [null, type => type === null],
   [Boolean, type => typeof type === 'boolean'],
   [Number, type => typeof type === 'number'],
