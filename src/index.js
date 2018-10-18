@@ -74,7 +74,6 @@ function createRuntype(options = {}) {
       const result = f(...params);
 
       if (checkType(result, resultType) !== true) {
-        console.log(parsedParams);
         const error = new Error(`Result${resultDescription} is not valid`);
 
         if (log === true) {
