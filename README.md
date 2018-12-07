@@ -25,33 +25,61 @@ const Password = t`password ${password => password.length >= 6}`;
 // declare type without description
 const ErrorApi = t(e => e instanceof Error);
 
-const User = t.shape({
+const User = t`user data ${t.shape({
   id: t.number,
   name: t.string,
   avatar: t(url => url.startsWith('http')),
-});
+})}`;
 
-export const authUser = t`
+/*[1]*/export const authUser = t`
   # Return detailed user data from auth service
   > expect auth token in cookies
   - ${[Email, Password]}
-  - ${t.async(User, ErrorApi)} user data
+  - ${t.async(User, ErrorApi)}
 `(
-  (email, password) => api.get(`/user`, { email })
+  (email, password) => api.get(`/user`, { email, password })
 );
 
 // Equal
 
-export const authUser = t`
+/*[2]*/export const authUser = t`
   # Return detailed user data from auth service
   > expect auth token in cookies
   - ${[
     t`simple e-mail validation ${email => email.contains('@')}`,
     t`password ${password => password.length >= 6}`
   ]}
-  - ${t.async(User, ErrorApi)} user data
+  - ${t.async(
+      t`user data ${t.shape({
+        id: t.number,
+        name: t.string,
+        avatar: t(url => url.startsWith('http')),
+      })}`,
+      t(e => e instanceof Error)
+  )}
 `(
-  (email, password) => api.get(`/user`, { email })
+  (email, password) => api.get(`/user`, { email, password })
+);
+
+// Equal
+
+/*[3]*/export const authUser = t([],
+  [email => email.contains('@'), password => password.length >= 6],
+  t.async(
+    t.shape({ id: t.number, name: t.string, avatar: t(url => url.startsWith('http')) }),
+    t(e => e instanceof Error)
+  )
+)(
+  (email, password) => api.get(`/user`, { email, password })
+);
+
+// Equal
+
+/*[4]*/export const authUser = t([],
+  [Email, Password],
+  t.async(User, ErrorApi)
+)(
+  (email, password) => api.get(`/user`, { email, password })
 );
 ```
 
