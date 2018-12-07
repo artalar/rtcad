@@ -33,7 +33,7 @@ const User = t`user data ${t.shape({
 
 /*[1]*/export const authUser = t`
   # Return detailed user data from auth service
-  > expect auth token in cookies
+  > set auth token to cookies
   - ${[Email, Password]}
   - ${t.async(User, ErrorApi)}
 `(
@@ -44,7 +44,7 @@ const User = t`user data ${t.shape({
 
 /*[2]*/export const authUser = t`
   # Return detailed user data from auth service
-  > expect auth token in cookies
+  > set auth token to cookies
   - ${[
     t`simple e-mail validation ${email => email.contains('@')}`,
     t`password ${password => password.length >= 6}`
