@@ -18,6 +18,8 @@ Current status: proof of concept
 
 ### [target] Example
 
+> source code in this repo implements diferent version of API. You can look tests, but it is legacy.
+
 ```javascript
 // declare type with description
 const Email = t`simple e-mail validation ${email => email.contains('@')}`;
