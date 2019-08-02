@@ -12,7 +12,7 @@ Current status: proof of concept
 - **type inference** for TypeScript and Flow **without use it** manually
 - easy automatically documentation by **MD** syntax (GitBook / Docusaurus)
 - useful suggestions in IDE and error description
-- [hopefully] automatically generated autotests
+- [hopefully] automatically generated autotests (property-base testing)
 
 > "friendly" / "easy" / "useful" - because of its most important target of this project
 
