@@ -7,82 +7,65 @@ Current status: proof of concept
 
 ### Motivation
 
-- friendly api for **type definition** and **documentation** (both in one place)
-- friendly api for design by contract (optionally remove in production)
-- **type inference** for TypeScript and Flow **without use it** manually
-- easy automatically documentation by **MD** syntax (GitBook / Docusaurus)
-- useful suggestions in IDE and error description
-- [hopefully] automatically generated autotests (property-base testing)
-
-> "friendly" / "easy" / "useful" - because of its most important target of this project
+1. Infer static types.
+2. Validate arguments and result of `authUser` call.
+3. Automatically generate documentation.
+4. Leave mocks for tests (generate it automatically).
+5. Property-base testing out of the box.
 
 ### [target] Example
 
-> source code in this repo implements diferent version of API. You can look tests, but it is legacy.
+```typescript
+import * as t from 'rtcad'
+import * as network from './network' // fetcher
 
-```javascript
-// declare type with description
-const Email = t`simple e-mail validation ${email => email.contains('@')}`;
-const Password = t`password ${password => password.length >= 6}`;
-// declare type without description
-const ErrorApi = t(e => e instanceof Error);
+// declare runtype
+const Password = t.String()
 
-const User = t`user data ${t.shape({
-  id: t.number,
-  name: t.string,
-  avatar: t(url => url.startsWith('http')),
-})}`;
+// declare runtype with description and extended validation
+const Email = t`
+  simple e-mail validation
+  ${t.String(value => value.contains('@'))}
+`
 
-/*[1]*/export const authUser = t`
+// declare structure
+const User = t`user data ${t.Record({
+  id: t.Number(),
+  name: t.String(),
+  avatar: t.OR(t.Null, t.String(url => url.startsWith('http'))),
+})}`
+
+// declare ~generic by custom runtype
+// (TypeScript syntax)
+const Instanceof = <T extends t.Runtype>(Gen: T) =>
+  t.custom<T>(value => value instanceof Gen)
+
+// use generic
+const ErrorApi = Instanceof(network.Error)
+
+// declare contract for function with description (Markdown)
+export const authUser = t`
   # Return detailed user data from auth service
   > set auth token to cookies
   - ${[Email, Password]}
-  - ${t.async(User, ErrorApi)}
-`(
-  (email, password) => api.get(`/user`, { email, password })
-);
+  - ${t.Promise(User, ErrorApi)}
+`((email, password) => network.get(`/user`, { email, password }))
 
-// Equal
+/* EQUAL */
 
-/*[2]*/export const authUser = t`
-  # Return detailed user data from auth service
-  > set auth token to cookies
-  - ${[
-    t`simple e-mail validation ${email => email.contains('@')}`,
-    t`password ${password => password.length >= 6}`
-  ]}
-  - ${t.async(
-      t`user data ${t.shape({
-        id: t.number,
-        name: t.string,
-        avatar: t(url => url.startsWith('http')),
-      })}`,
-      t(e => e instanceof Error)
-  )}
-`(
-  (email, password) => api.get(`/user`, { email, password })
-);
+// declare contract for function without description
+export const authUser = t([Email, Password], t.Promise(User, ErrorApi))(
+  (email, password) => network.get(`/user`, { email, password }),
+)
 
-// Equal
-
-/*[3]*/export const authUser = t([],
-  [email => email.contains('@'), password => password.length >= 6],
-  t.async(
-    t.shape({ id: t.number, name: t.string, avatar: t(url => url.startsWith('http')) }),
-    t(e => e instanceof Error)
-  )
-)(
-  (email, password) => api.get(`/user`, { email, password })
-);
-
-// Equal
-
-/*[4]*/export const authUser = t([],
-  [Email, Password],
-  t.async(User, ErrorApi)
-)(
-  (email, password) => api.get(`/user`, { email, password })
-);
+/**
+ * Now we can:
+ * 1. Infer static types.
+ * 2. Validate arguments and result of `authUser` call.
+ * 3. Automatically generate documentation.
+ * 4. Leave mocks for tests (generate it automatically).
+ * 5. Property-base testing out of the box.
+ */
 ```
 
 <!--
