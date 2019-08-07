@@ -8,7 +8,7 @@ Current status: proof of concept
 ### Motivation
 
 1. Infer static types.
-2. Validate arguments and result of `authUser` call.
+2. Validate arguments and result of functions call.
 3. Automatically generate documentation.
 4. Leave mocks for tests (generate it automatically).
 5. Property-base testing out of the box.
