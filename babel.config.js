@@ -1,20 +1,13 @@
-module.exports = {
-  presets: [
-    [
-      "@babel/env",
-      {
-        targets: {
-          browsers: [
-            /* 
-              FIXME: webpack
-            */
-            process.env.BABEL_ENV === "commonjs"
-              ? "ie 11"
-              : "last 2 Chrome versions"
-          ]
-        },
-        useBuiltIns: "usage"
+module.exports =
+  process.env.NODE_ENV === 'test'
+    ? {
+        presets: [
+          ['@babel/env', { targets: { node: '10' } }],
+          '@babel/typescript',
+        ],
+        plugins: [
+          '@babel/plugin-proposal-class-properties',
+          '@babel/proposal-object-rest-spread',
+        ],
       }
-    ]
-  ],
-};
+    : {}
