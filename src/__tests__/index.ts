@@ -26,6 +26,9 @@ describe('rtcad', () => {
       send(email, password)
 
       // static type error
+      send('a@b.c', '12345678')
+
+      // static type error
       send(password, email)
     })
     // test('real world example', () => {
