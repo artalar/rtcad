@@ -6,7 +6,8 @@
   "extends": ["airbnb-base", "prettier"],
 
   "rules": {
-    "no-plusplus": "off",
+    "strict": 0,
+    "no-plusplus": "off"
   },
 
   "env": {

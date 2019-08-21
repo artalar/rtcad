@@ -3,17 +3,21 @@
 Current status: proof of concept
 
 # rtcad
+
 > runtime type checking and documentation
+<!-- refinement type checking ;) -->
 
-### Motivation
+## Motivation
 
-1. Infer static types.
-2. Validate arguments and result of functions call.
-3. Automatically generate documentation.
-4. Leave mocks for tests (generate it automatically).
-5. Property-base testing out of the box.
+1. Validate arguments and result of functions call for good guaranties of code correctness.
+2. Automatically generate documentation.
+3. Infer static types.
+4. SSoT of validators, static types and documentation.
+5. [static] Refinement data-types
+6. Leave mocks for tests (generate it automatically).
+7. Property-base testing out of the box.
 
-### [target] Example
+## [target] Example
 
 ```typescript
 import * as t from 'rtcad'
@@ -87,3 +91,7 @@ TODO:
     * write autotests UI-manager
     * ...
 -->
+
+## Background
+
+- API inspired by [runtypes](https://github.com/pelotom/runtypes)
