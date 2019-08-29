@@ -30,7 +30,6 @@ bower_components
 .lock-wscript
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
-build
 .rt*
 
 # Dependency directories
@@ -61,9 +60,11 @@ typings/
 # next.js build output
 .next
 
-# Build
-lib/
-es/
-
 # IDE
-.vscode
+.vscode/
+
+#
+.DS_Store
+dist/
+.cache/
+/build/
