@@ -18,7 +18,7 @@ type Validator<T> =
   | ((thing: unknown) => thing is T)
   | ((thing: unknown) => string)
 
-class ValidationError extends TypeError {
+export class ValidationError extends TypeError {
   data: Runtype<any>
 
   constructor(message: string, data: Runtype<any>) {
@@ -32,11 +32,13 @@ class ValidationError extends TypeError {
 const noopPositive: Validator<any> = () => true
 
 const IS = {
+  never: (thing: unknown): thing is never => true,
   undefined: (thing: unknown): thing is undefined =>
     typeof thing === 'undefined',
   null: (thing: unknown): thing is null => thing === null,
   boolean: (thing: unknown): thing is boolean => typeof thing === 'boolean',
   number: (thing: unknown): thing is number => typeof thing === 'number',
+  bigint: (thing: unknown): thing is bigint => typeof thing === 'bigint',
   string: (thing: unknown): thing is string => typeof thing === 'string',
   symbol: (thing: unknown): thing is symbol => typeof thing === 'symbol',
   function: (thing: unknown): thing is (...a: any[]) => any =>
@@ -44,10 +46,13 @@ const IS = {
   object: (thing: unknown): thing is object =>
     typeof thing === 'object' && thing !== null,
   array: (thing: unknown): thing is Array<any> => Array.isArray(thing),
+  map: (thing: unknown): thing is Map<any, any> =>
+    thing && thing instanceof Map,
+  set: (thing: unknown): thing is Set<any> => thing && thing instanceof Set,
 }
 
 export class Runtype<Type = unknown> {
-  name: string
+  title: string
   description: string | null
   refinementStack: string[]
   validator: Validator<Type>
@@ -56,7 +61,7 @@ export class Runtype<Type = unknown> {
     options:
       | Validator<Type>
       | {
-          name?: string
+          title?: string
           description?: string
           refinementStack?: string[]
           validator?: Validator<Type>
@@ -67,21 +72,21 @@ export class Runtype<Type = unknown> {
       throw new TypeError('Unexpected Runtype options')
 
     const {
-      name = 'unnamed runtype',
+      title = 'unnamed runtype',
       description = null,
-      refinementStack = [name],
+      refinementStack = [title],
       validator = noopPositive,
     } = options
 
     if (
-      !IS.string(name) ||
+      !IS.string(title) ||
       !(IS.null(description) || IS.string(description)) ||
       !IS.array(refinementStack) ||
       !IS.function(validator)
     )
       throw new TypeError('Unexpected Runtype options')
 
-    this.name = name
+    this.title = title
     this.description = description
     this.validator = validator
     this.refinementStack = refinementStack
@@ -92,17 +97,24 @@ export class Runtype<Type = unknown> {
     // @ts-ignore
     return result === true
       ? null
-      : new ValidationError(result || `Invalid type; in: ${this.name}`, this)
+      : new ValidationError(result || `Invalid type; in: ${this.title}`, this)
   }
   guard(thing: unknown): thing is Type {
-    return this.validator(thing) === true ? true : false
+    return this.validator(thing) === true
   }
+  /** Ensure that payload is valid type and return it or throw ValidationError */
   ensure(thing: unknown): Type {
     const result = this.validate(thing)
-    if (result === null) return thing as Type
+    if (!result) return thing as Type
     throw result
   }
   // https://medium.com/@gcanti/refinements-with-flow-9c7eeae8478b
+  /**
+   * Statically (and runtime) constrict type.
+   *
+   * If first argument is string return unique static type
+   * binded to the type title
+   * */
   refine<
     RefinementType extends Type = Type,
     RefinementTypeName extends string | null = null
@@ -116,15 +128,19 @@ export class Runtype<Type = unknown> {
       : RefinementType
   > {
     const validator = a.pop() as (thingTyped: Type) => boolean | string
-    const name = (a.pop() || this.name) as string
+    const title = (a.pop() || this.title) as string
     const refinementStack =
-      this.refinementStack[0] === name
+      this.refinementStack[0] === title
         ? this.refinementStack
-        : [name, ...this.refinementStack]
+        : [title].concat(this.refinementStack)
     const parentValidator = this.validator
 
+    // `title` ensures by new Runtype
+    if (!IS.function(validator))
+      throw new TypeError('Unexpected Runtype.refine validator')
+
     return new Runtype({
-      name,
+      title,
       refinementStack,
       validator: ((value: unknown) => {
         const parentValidationResult = parentValidator(value)
@@ -142,56 +158,149 @@ export class Runtype<Type = unknown> {
       }) as any,
     })
   }
+
+  toJSON() {
+    // TODO: add `rtcad` prefix?
+    return this.title
+  }
 }
 
 export type Static<T extends Runtype<any>> = T extends Runtype<infer t>
   ? t
   : never
 
+const ObjectRT = new Runtype({
+  title: 'object',
+  validator: IS.object,
+})
+
+export type LiteralBase = undefined | null | boolean | number | string
+
+// TODO: https://github.com/pelotom/runtypes/tree/master/src/types
 export const t = {
+  Never: new Runtype({
+    title: 'never',
+    validator: IS.never,
+  }),
   Undefined: new Runtype({
-    name: 'undefined',
-    validator: (thing: unknown): thing is undefined =>
-      IS.undefined(thing) || ((`Invalid undefined` as any) as false),
+    title: 'undefined',
+    validator: IS.undefined,
   }),
   Null: new Runtype({
-    name: 'null',
-    validator: (thing: unknown): thing is null =>
-      IS.null(thing) || ((`Invalid null` as any) as false),
+    title: 'null',
+    validator: IS.null,
   }),
   Boolean: new Runtype({
-    name: 'boolean',
-    validator: (thing: unknown): thing is boolean =>
-      IS.boolean(thing) || ((`Invalid boolean` as any) as false),
+    title: 'boolean',
+    validator: IS.boolean,
   }),
   Number: new Runtype({
-    name: 'number',
-    validator: (thing: unknown): thing is number =>
-      IS.number(thing) || ((`Invalid number` as any) as false),
+    title: 'number',
+    validator: IS.number,
+  }),
+  Bigint: new Runtype({
+    title: 'bigint',
+    validator: IS.bigint,
   }),
   String: new Runtype({
-    name: 'string',
-    validator: (thing: unknown): thing is string =>
-      IS.string(thing) || ((`Invalid string` as any) as false),
+    title: 'string',
+    validator: IS.string,
   }),
   Symbol: new Runtype({
-    name: 'symbol',
-    validator: (thing: unknown): thing is symbol =>
-      IS.symbol(thing) || ((`Invalid symbol` as any) as false),
+    title: 'symbol',
+    validator: IS.symbol,
   }),
   Function: new Runtype({
-    name: 'function',
-    validator: (thing: unknown): thing is (...a: any[]) => any =>
-      IS.function(thing) || ((`Invalid function` as any) as false),
+    title: 'function',
+    validator: IS.function,
   }),
-  Object: new Runtype({
-    name: 'object',
-    validator: (thing: unknown): thing is object =>
-      IS.object(thing) || ((`Invalid object` as any) as false),
-  }),
+  Object: Object.assign(
+    <T extends { [key: string]: Runtype<any> }>(
+      shape: T,
+    ): Runtype<
+      { [key in keyof T]: T[key] extends Runtype<infer RT> ? RT : never }
+    > => {
+      const title = JSON.stringify(shape)
+      const keys = Object.keys(shape)
+
+      if (title === '{}') console.log('wat?', shape.data.toJSON)
+
+      return new Runtype({
+        title,
+        validator: ((thing: unknown) => {
+          const isObject = t.Object.validator(thing)
+          if (!IS.object(thing)) return `Invalid object`
+
+          for (let i = 0; i < keys.length; i++) {
+            const key = keys[i]
+            const runtype = shape[key]
+            const result = runtype.validator((thing as any)[key])
+            if (result !== true) {
+              const error = result || `Invalid type`
+              return `Invalid type "${runtype.title}" of "${key}": ${error}; in ${title}`
+            }
+          }
+
+          return true
+        }) as any,
+      })
+    },
+    ObjectRT,
+  ),
   Array: new Runtype({
-    name: 'array',
-    validator: (thing: unknown): thing is Array<any> =>
-      IS.array(thing) || ((`Invalid array` as any) as false),
+    title: 'array',
+    validator: IS.array,
   }),
+  Map: new Runtype({
+    title: 'map',
+    validator: IS.map,
+  }),
+  Set: new Runtype({
+    title: 'set',
+    validator: IS.set,
+  }),
+  Literal: <T extends LiteralBase>(literal: T) =>
+    new Runtype({
+      title: 'literal',
+      validator: (thing: unknown): thing is T =>
+        thing === literal || ((`Payload is not "${literal}"` as any) as false),
+    }),
+  And: <T extends Runtype<any>[]>(
+    ...runtypes: T
+  ): Runtype<
+    AND<{ [key in keyof T]: T[key] extends Runtype<infer RT> ? RT : never }>
+  > =>
+    new Runtype({
+      title: runtypes.map(runtype => runtype.title).join(' & '),
+      validator: ((thing: unknown) => {
+        for (let i = 0; i < runtypes.length; i++) {
+          const runtype = runtypes[i]
+          const result = runtype.validator(thing)
+          if (result !== true)
+            return result || `Invalid type; in: ${runtype.title}`
+        }
+        return true
+      }) as any,
+    }),
+  Or: <T extends Runtype<any>[]>(
+    ...runtypes: T
+  ): Runtype<
+    OR<{ [key in keyof T]: T[key] extends Runtype<infer RT> ? RT : never }>
+  > =>
+    new Runtype({
+      title: runtypes.map(runtype => runtype.title).join(' | '),
+      validator: ((thing: unknown) => {
+        const errors: (string)[] = []
+        for (let i = 0; i < runtypes.length; i++) {
+          const runtype = runtypes[i]
+          const result = runtype.validator(thing)
+          if (result !== true)
+            errors.push(result || `Invalid type; in: ${runtype.title}`)
+        }
+        return errors.length !== runtypes.length || errors.join(' |\n')
+      }) as any,
+    }),
 }
+
+// FIXME: WAT? tests is fail without it
+t.Object.toJSON = ObjectRT.toJSON
